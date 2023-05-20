@@ -69,13 +69,16 @@ class NPC(pygame.sprite.Sprite):
         self.defeated = False  # Add the defeated attribute
 
     def interact(self, player,screen,font):
-        if self.dialogue_state == "ask":
-            self.current_message = self.message
-            self.dialogue_state = "wait_for_answer"
-        elif self.dialogue_state == "wait_for_answer":
-            self.dialogue_state = "battle"
-        elif self.dialogue_state == "battle":
-            return self.start_battle(player,screen,font)
+        if self.defeated:
+            self.render_text(screen, "I've already been defeated!")
+        else:
+            if self.dialogue_state == "ask":
+                self.current_message = self.message
+                self.dialogue_state = "wait_for_answer"
+            elif self.dialogue_state == "wait_for_answer":
+                self.dialogue_state = "battle"
+            elif self.dialogue_state == "battle":
+                return self.start_battle(player,screen,font)
 
     def start_battle(self, player,screen,font):
         return Battle(player.team, self.team, screen, font)
@@ -103,6 +106,11 @@ class Battle:
         self.moves_menu = None
         self.player_selected_move = False
 
+    def display_end_battle_message(self, screen, font, message):
+        text = font.render(message, True, (255, 255, 255))
+        screen.blit(text, (WIDTH // 2 - text.get_width() // 2, HEIGHT // 2 - text.get_height() // 2))
+        pygame.display.update()
+        pygame.time.wait(2000)  # Wait for 2 seconds so the player can read the message
     def is_npc_defeated(self):
         return len(self.npc_team) == 0
 
