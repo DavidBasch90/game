@@ -64,6 +64,7 @@ clock = pygame.time.Clock()
 running = True
 battle_active = False
 interacting_npc = None
+battle_npc = None
 while running:
     clock.tick(FPS)
     keys = pygame.key.get_pressed()
@@ -81,8 +82,12 @@ while running:
                     collided_npcs = pygame.sprite.spritecollide(player, npcs, False)
                     for npc in collided_npcs:
                         interacting_npc = npc
-                        logging.info('npc interacting with player')
-                        npc.interact(player, screen, font)
+                        if interacting_npc.defeated:
+                            # Display defeated dialogue
+                            interacting_npc.render_text(screen, "I've already been defeated!")
+                        else:
+                            logging.info('npc interacting with player')
+                            interacting_npc.interact(player, screen, font)
             if interacting_npc:
                 if event.key == pygame.K_y:
                     logging.info('player says yes to battle')
@@ -91,7 +96,8 @@ while running:
                         battle = interacting_npc.interact(player, screen, font)
                         if battle:
                             battle_active = True
-                            interacting_npc = None
+                            battle_npc = interacting_npc
+
                 if event.key == pygame.K_n:
                     logging.info('player says no to battle')
                     if interacting_npc.dialogue_state == "wait_for_answer":
@@ -103,8 +109,6 @@ while running:
         player.update(keys)
 
     if battle_active:
-
-
         battle.handle_input(events)
         battle_done = battle.update(events)
         if battle_done:
@@ -113,11 +117,18 @@ while running:
             # Handle the end of the battle
             if not battle.npc_team:  # Check if the NPC team is empty
                 logging.info('empty team for npc')
+                battle.display_end_battle_message(screen, font, "You Win!")
+                if battle_npc is not None:  # Check if battle_npc is not None
+                    logging.info('npc defeated check')
+                    battle_npc.defeated = True
+                battle_npc = None  # Reset battle_npc to None
 
                 if interacting_npc is not None:  # Add this check
                     logging.info('npc defeated check')
                     interacting_npc.defeated = True
                 interacting_npc = None
+            else:
+                battle.display_end_battle_message(screen, font, "You Lose!")  # Display losing message
 
     # Draw everything
     if not battle_active:
@@ -130,6 +141,8 @@ while running:
                 interacting_npc.render_text(screen, interacting_npc.current_message + " Do you want to battle? (Y/N)")
             elif interacting_npc.dialogue_state == "ask":
                 interacting_npc.render_text(screen, interacting_npc.current_message)
+            elif interacting_npc.dialogue_state == "defeated":
+                interacting_npc.render_text(screen, "You're pretty good...")
     else:
         battle.draw(screen)
 
